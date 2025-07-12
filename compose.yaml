@@ -1,6 +1,7 @@
-version: "3.8"
 services:
   certbot_ionos:
+    container_name: certbot-ionos
+    restart: always
     image: gmmserv/docker-certbot-dns-ionos:2024.1.8
     volumes:
       - "~/certbot:/certbot"

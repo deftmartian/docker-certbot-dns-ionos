@@ -1,5 +1,11 @@
-ARG CERTBOT_VERSION
+ARG CERTBOT_VERSION=latest 
+
 FROM certbot/certbot:${CERTBOT_VERSION}
+
+ARG VERSION=2024.11.09  # version of https://github.com/helgeerbe/certbot-dns-ionos
+ARG USER_UID=1000
+ARG USER_GID=1000
+
 
 LABEL org.opencontainers.image.authors="gnammyx@gmail.com"
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/gmmserv/docker-certbot-dns-ionos"
@@ -16,8 +22,8 @@ ENV TARGETPLATFORM=${TARGETPLATFORM}
 
 # user envs
 ENV USERNAME=certbot
-ENV USER_UID=1000
-ENV USER_GID="${USER_UID}"
+ENV USER_UID="${USER_UID}"
+ENV USER_GID="${USER_GID}"
 
 # certbot envs
 ENV CERTBOT_BASE_DIR="/certbot"
@@ -31,8 +37,8 @@ ENV CERTBOT_WORK_DIR="${CERTBOT_BASE_DIR}/var/lib/letsencrypt"
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN apk update --no-cache \
     && apk upgrade --no-cache \
-    && apk add --no-cache doas==6.8.2-r4 \
-                          curl==8.5.0-r0 \
+    && apk add --no-cache doas \
+                          curl \
     && mkdir -p "${CERTBOT_BASE_DIR}" \
     && addgroup -g "${USER_GID}" -S "${USERNAME}" \
     && adduser -u "${USER_UID}" -S "${USERNAME}" -G "${USERNAME}" -h "${CERTBOT_BASE_DIR}" \
@@ -41,7 +47,7 @@ RUN apk update --no-cache \
     && doas -C "/etc/doas.d/doas.conf"
 
 # install supercronic
-ENV SUPERCRONIC_BASE_URL="https://github.com/aptible/supercronic/releases/download/v0.2.29"
+ENV SUPERCRONIC_BASE_URL="https://github.com/aptible/supercronic/releases/download/v0.2.34"
 RUN wget -q "${SUPERCRONIC_BASE_URL}/supercronic-linux-$(echo "${TARGETPLATFORM}" | \
                                     cut -d '/' -f 2)" -O /usr/local/bin/supercronic \
     && chmod +x /usr/local/bin/supercronic
@@ -64,7 +70,7 @@ RUN mkdir -p "${CERTBOT_LIVE_DIR}" \
                 /tmp/crontabs \
     && touch "/tmp/crontabs/${USERNAME}"
 
-HEALTHCHECK CMD ["pgrep","-f","certbot_entry.sh"]
+HEALTHCHECK CMD [ "pgrep", "-f", "supercronic" ]
 
 # ENTRYPOINT ["tail", "-f", "/dev/null"] # for testing purposes
 ENTRYPOINT ["/entrypoint.sh"]

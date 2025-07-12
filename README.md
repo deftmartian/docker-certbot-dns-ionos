@@ -69,13 +69,20 @@ VERSION = # version of the image (I'm using the version of the Ionos certbot plu
 CERTBOT_VERSION = # version of the certbot image used as base
 ```
 
+Also possible to pass UID and GID to set cert default owner
+
+```ini
+USER_UID=1883 
+USER_GID=1883 
+```
+
 Example of a simple build with "docker build"
 
 ```shell
 docker build
-     --build-arg VERSION=2024.1.8
-     --build-arg CERTBOT_VERSION=v2.9.0
-     -t docker-certbot-dns-ionos:2024.1.8 .
+     --build-arg VERSION=2024.11.09 
+     --build-arg CERTBOT_VERSION=v4.1.1
+     -t docker-certbot-dns-ionos:2024.11.09  .
 ```
 
 Example of a multi architecture build with "docker buildx", you need to first create a builder using the binfmt image. Have a look at the docker-bake.hcl file for other parameters
@@ -83,8 +90,8 @@ My file iso configured to build 4 platforms, 'linux/amd64','linux/arm64','linux/
 
 ```shell
 export IMAGE_NAME=docker-certbot-dns-ionos
-export VERSION=2024.1.8
-export CERTBOT_VERSION=v2.9.0
+export VERSION=2024.11.09 
+export CERTBOT_VERSION=v4.1.1
 export REGISTRY_IMAGE="${HARBOR_HOST}/${HARBOR_PROJECT}/${IMAGE_NAME}"
 export REGISTRY_IMAGE_PUBLIC="${DOCKERHUB_USER}/${IMAGE_NAME}"
 export BUILDER_IMAGE="${IMAGE_NAME}-builder"

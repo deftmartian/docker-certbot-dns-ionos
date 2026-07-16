@@ -1,25 +1,41 @@
+variable "IMAGE" {
+  default = "docker-certbot-dns-ionos"
+}
+
 variable "VERSION" {
-  default = ""
+  default = "2024.11.09"
 }
 
 variable "CERTBOT_VERSION" {
-  default = ""
+  default = "v5.7.0"
 }
 
-variable "REGISTRY_IMAGE" {
-  default = ""
+variable "GOLANG_VERSION" {
+  default = "1.26.5-alpine"
 }
 
-variable "REGISTRY_IMAGE_PUBLIC" {
-  default = ""
+variable "SUPERCRONIC_VERSION" {
+  default = "v0.2.47"
+}
+
+variable "USER_UID" {
+  default = "1000"
+}
+
+variable "USER_GID" {
+  default = "1000"
 }
 
 target "default" {
   dockerfile = "Dockerfile"
   args = {
-    VERSION = "${VERSION}"
-    CERTBOT_VERSION = "${CERTBOT_VERSION}"
+    VERSION              = VERSION
+    CERTBOT_VERSION      = CERTBOT_VERSION
+    GOLANG_VERSION       = GOLANG_VERSION
+    SUPERCRONIC_VERSION  = SUPERCRONIC_VERSION
+    USER_UID             = USER_UID
+    USER_GID             = USER_GID
   }
-  platforms = ["linux/amd64","linux/arm64","linux/arm/v7","linux/arm/v6"]
-  tags = ["${REGISTRY_IMAGE}:${VERSION}","${REGISTRY_IMAGE_PUBLIC}:${VERSION}"]
+  platforms = ["linux/amd64", "linux/arm64", "linux/arm/v6"]
+  tags = ["${IMAGE}:${VERSION}"]
 }

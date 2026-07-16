@@ -1,17 +1,23 @@
 services:
   certbot_ionos:
     container_name: certbot-ionos
-    restart: always
-    image: gmmserv/docker-certbot-dns-ionos:2024.1.8
+    restart: unless-stopped
+    build:
+      context: .
+      args:
+        VERSION: ${CERTBOT_IONOS_VERSION:-2024.11.09}
+        CERTBOT_VERSION: ${CERTBOT_VERSION:-v5.7.0}
+        USER_UID: ${CERTBOT_PUID:-1000}
+        USER_GID: ${CERTBOT_PGID:-1000}
+    image: docker-certbot-dns-ionos:${CERTBOT_IONOS_VERSION:-2024.11.09}
     volumes:
-      - "~/certbot:/certbot"
-      - "~/certbot/etc/letsencrypt/live:/certbot/etc/letsencrypt/live"
-      - "~/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets"
+      - ${HOME}/certbot:/certbot
+      - ${HOME}/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets:ro
     environment:
-      - TZ=Europe/Rome
-      - IONOS_CREDENTIALS=/certbot/etc/letsencrypt/.secrets/ionos.ini
-      - IONOS_CRONTAB=0 13 * * *
-      - IONOS_DOMAINS=test.ionos.io
-      - IONOS_PROPAGATION=300
-      - IONOS_EMAIL=test@test.com
-      # - IONOS_ARGS # optional
+      TZ: ${TZ:-America/Halifax}
+      IONOS_CREDENTIALS: /certbot/etc/letsencrypt/.secrets/ionos.ini
+      IONOS_CRONTAB: ${IONOS_CRONTAB:-0 13 * * *}
+      IONOS_DOMAINS: ${IONOS_DOMAINS:?Set IONOS_DOMAINS}
+      IONOS_PROPAGATION: ${IONOS_PROPAGATION:-300}
+      IONOS_EMAIL: ${IONOS_EMAIL:?Set IONOS_EMAIL}
+      IONOS_ARGS: ${IONOS_ARGS:-}

@@ -1,132 +1,122 @@
 # docker-certbot-dns-ionos
 
-![Contributors](https://img.shields.io/github/contributors/gianmarco-mameli/docker-certbot-dns-ionos?style=plastic) ![Forks](https://img.shields.io/github/forks/gianmarco-mameli/docker-certbot-dns-ionos?style=plastic) ![Stargazers](https://img.shields.io/github/stars/gianmarco-mameli/docker-certbot-dns-ionos?style=plastic) ![Issues](https://img.shields.io/github/issues/gianmarco-mameli/docker-certbot-dns-ionos?style=plastic) ![License](https://img.shields.io/github/license/gianmarco-mameli/docker-certbot-dns-ionos?style=plastic)
+A scheduled, non-root Certbot container using the
+[`certbot-dns-ionos`](https://github.com/helgeerbe/certbot-dns-ionos)
+authenticator.
 
-I created a Docker image for certbot-dns-ionos plugin from <https://github.com/helgeerbe/certbot-dns-ionos> project
+This repository is the maintained canonical source for the implementation
+shared by the Authentik and MQTT stacks. It preserves their existing build
+arguments. Until their vendored `certbot-build/` copies are replaced, changes
+here do not propagate to those stacks automatically.
 
-The image is based on certbot original image with the addition of the plugin and include some variations to run all the scripts as non root user, set some permissions and schedule the certificate update with 'supercronic'.
-The only script that run with highest privileges is for settings some folder permission and it's limited by "doas" command.
+## Runtime model
 
-You need mapping of the following internal folders, that certbot uses as base dirs.
+The container starts as root only long enough to repair ownership on an
+existing `/certbot` volume and create its crontab. It then uses `su-exec` to
+replace itself with Supercronic as the unprivileged `certbot` user. There is no
+persistent root helper inside the running container.
+
+Supercronic 0.2.47 is built from source with Go 1.26.5 so the final binary does
+not inherit the vulnerable Go standard library used by the upstream 0.2.47
+release asset.
+
+The scheduled command runs `certbot certonly` with `--keep-until-expiring`, so
+it checks the requested certificate lineage on every schedule and only renews
+when needed.
+
+## Required configuration
+
+| Variable | Description |
+|---|---|
+| `IONOS_CREDENTIALS` | Path to the IONOS credentials file inside the container |
+| `IONOS_CRONTAB` | Five-field Supercronic schedule, such as `0 13 * * *` |
+| `IONOS_DOMAINS` | Comma-separated certificate domains |
+| `IONOS_PROPAGATION` | Seconds to wait for DNS propagation |
+| `IONOS_EMAIL` | Email passed to Certbot for ACME registration |
+| `IONOS_ARGS` | Optional whitespace-separated additional Certbot arguments |
+
+Create the credentials file with permissions that allow only the configured
+Certbot UID to read it:
 
 ```ini
-- /certbot # base folder
-- /certbot/etc/letsencrypt/live # generated certificates folder
-- /certbot/etc/letsencrypt/.secrets # path containing Ionos credential file
+dns_ionos_prefix = your-api-prefix
+dns_ionos_secret = your-api-secret
+dns_ionos_endpoint = https://api.hosting.ionos.com
 ```
 
-Create the file containing the credentials for the ionos api login, you can specify the path via env variable (change the volume accordingly).
-Make sure you created the API key on [Ionos control panel](https://developer.hosting.ionos.it/keys)
+The credentials directory should be mounted read-only at
+`/certbot/etc/letsencrypt/.secrets`. Never commit the credentials file.
 
-This is the template to use (also available in the repository ionos.ini.tmpl or in the original [project repo](https://github.com/helgeerbe/certbot-dns-ionos#credentials))
+## Compose
 
-```ini
-# Instructions: <https://github.com/helgeerbe/certbot-dns-ionos>
-# Replace with your values
-dns_ionos_prefix = # ionos api prefix
-dns_ionos_secret = # ionos api secret
-dns_ionos_endpoint = # ionos api endpoint, ex. <https://api.hosting.ionos.com>
-```
-
-Finally need the following environment variables to make it work
-
-```ini
-IONOS_CREDENTIALS=/certbot/etc/letsencrypt/.secrets/ionos.ini # the path of the credential file ionos.ini
-IONOS_CRONTAB=0 13 * * * # the supercronic schedule, in crontab format
-IONOS_DOMAINS=test.ionos.io,test2.ionos.io # the domains to use on certificate renew, multiple entry comma separated
-IONOS_PROPAGATION=300 # the seconds to wait for ionos dns propagation
-IONOS_EMAIL=test@test.com # your ionos account email
-```
-
-## Usage
-
-The image is available on Dockerhub <https://hub.docker.com/r/gmmserv/docker-certbot-dns-ionos>
-
-For a fast run from command line with the following example make sure:
-
-- you created all dirs to mount as volume
-- you created the 'ionos.ini' file with correct credentials under ~/certbot/etc/letsencrypt/.secrets
-- create a .env file, for simplicity, with all the envs needed
+Copy `ionos.ini.tmpl` to `${HOME}/certbot/etc/letsencrypt/.secrets/ionos.ini`,
+fill in the credentials, then set at least `IONOS_DOMAINS` and `IONOS_EMAIL`:
 
 ```shell
-docker run -v ~/certbot:/certbot
-           -v ~/certbot/etc/letsencrypt/live:/certbot/etc/letsencrypt/live
-           -v ~/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets
-           --env-file .env
-           gmmserv/docker-certbot-dns-ionos:2024.1.8
+export IONOS_DOMAINS='example.com,*.example.com'
+export IONOS_EMAIL='admin@example.com'
+docker compose up --build -d
 ```
 
-The repo contains also a docker-compose file for example service
+The included [compose.yaml](compose.yaml) builds the maintained local source.
+It does not pull the stale `gmmserv/docker-certbot-dns-ionos:2024.1.8` image.
 
-## Build
+## Build arguments
 
-If you want to build the image with your mods or customization you can find on the repo the Dockerfile used and a docker-bake.hcl file for multi architectures with buildx. Also there's a Gitlab pipeline that I use to build the images pushed to Dockerhub and a personal Harbor Registry
+The arguments consumed by the Authentik and MQTT stacks remain supported:
 
-Make sure to pass the following args
+| Argument | Default | Purpose |
+|---|---|---|
+| `VERSION` | `2024.11.09` | `certbot-dns-ionos` package version |
+| `CERTBOT_VERSION` | `v5.7.0` | `certbot/certbot` base image tag |
+| `USER_UID` | `1000` | Runtime `certbot` UID |
+| `USER_GID` | `1000` | Runtime `certbot` GID |
 
-```ini
-VERSION = # version of the image (I'm using the version of the Ionos certbot plugin)
-CERTBOT_VERSION = # version of the certbot image used as base
-```
+The image also accepts maintenance arguments `SUPERCRONIC_VERSION` and
+`GOLANG_VERSION`.
 
-Also possible to pass UID and GID to set cert default owner
-
-```ini
-USER_UID=1883 
-USER_GID=1883 
-```
-
-Example of a simple build with "docker build"
+Build directly:
 
 ```shell
-docker build
-     --build-arg VERSION=2024.11.09 
-     --build-arg CERTBOT_VERSION=v4.1.1
-     -t docker-certbot-dns-ionos:2024.11.09  .
+docker build \
+  --build-arg VERSION=2024.11.09 \
+  --build-arg CERTBOT_VERSION=v5.7.0 \
+  --build-arg USER_UID=1000 \
+  --build-arg USER_GID=1000 \
+  --tag docker-certbot-dns-ionos:2024.11.09 \
+  .
 ```
 
-Example of a multi architecture build with "docker buildx", you need to first create a builder using the binfmt image. Have a look at the docker-bake.hcl file for other parameters
-My file iso configured to build 4 platforms, 'linux/amd64','linux/arm64','linux/arm/v7','linux/arm/v6'
+Or build the supported `linux/amd64`, `linux/arm64`, and `linux/arm/v6`
+platforms with Bake:
 
 ```shell
-export IMAGE_NAME=docker-certbot-dns-ionos
-export VERSION=2024.11.09 
-export CERTBOT_VERSION=v4.1.1
-export REGISTRY_IMAGE="${HARBOR_HOST}/${HARBOR_PROJECT}/${IMAGE_NAME}"
-export REGISTRY_IMAGE_PUBLIC="${DOCKERHUB_USER}/${IMAGE_NAME}"
-export BUILDER_IMAGE="${IMAGE_NAME}-builder"
-docker run --privileged --rm tonistiigi/binfmt --install all
-docker buildx create --use --bootstrap --name ${BUILDER_IMAGE} --config=buildkitd.toml
-docker buildx bake --push --file docker-bake.hcl --progress plain
+IMAGE=ghcr.io/deftmartian/docker-certbot-dns-ionos \
+docker buildx bake --file docker-bake.hcl --push
 ```
 
-If you want to build with Gitlab, like me, have a look at the .gitlab-ci.yml, and set variables needed by the runner to execute. Pay particular attention to the 'buildkitd.toml.tmpl' file, you need to configure and rename to toml, for using custom signed CA Certificates for private registries. You can omit that file for pushing to dockerhub, also make sure to comment the "buildkit_toml" job on the pipeline.
+`linux/arm/v7` is intentionally omitted because the current official Certbot
+image does not publish an arm/v7 base manifest.
 
-## Customization
+## Validation
 
-This project is written keeping in mind my necessities so I reccomend you to check all the sources before use it or launch it
+CI performs ShellCheck and Hadolint linting, builds every supported platform,
+runs the scheduler through a real container restart, verifies the process UID
+and plugin registration, and fails on fixed High or Critical image
+vulnerabilities.
 
-## Issues, bugs, requests, collaboration
+Run the same smoke test locally after building:
 
-Feel free to open issues or pull requests if you find bugs or feature lack
+```shell
+tests/smoke.sh docker-certbot-dns-ionos:2024.11.09
+```
 
-## Next steps
+Set `CONTAINER_RUNTIME=podman` when using Podman.
 
-- enable/disable supercronic if needed, for use with external scheduler
-- better separation of Harbor and DockerHUB publish
-- add other parameters to certbot
+## Credits
 
-Any idea is welcome :)
-
-### Credits, Tools and links
-
-- [certbot](https://github.com/certbot/certbot)
-- [certbot-dns-ionos](https://github.com/helgeerbe/certbot-dns-ionos)
-- [supercronic](https://github.com/aptible/supercronic)
-- [doas](https://github.com/Duncaen/OpenDoas)
-- [pushrm](https://github.com/christian-korneck/docker-pushrm)
-
-### Support
-
-<a href="https://www.buymeacoffee.com/app/gianmarcomameli"> <img src="https://cdn.simpleicons.org/buymeacoffee" alt="buymeacoffe" height="32" /></a>
-<a href="https://ko-fi.com/gianmarcomameli"> <img src="https://cdn.simpleicons.org/kofi" alt="kofi" height="32"/></a>
+- [`certbot/certbot`](https://github.com/certbot/certbot)
+- [`helgeerbe/certbot-dns-ionos`](https://github.com/helgeerbe/certbot-dns-ionos)
+- [`aptible/supercronic`](https://github.com/aptible/supercronic)
+- Original container implementation by
+  [`gianmarco-mameli`](https://github.com/gianmarco-mameli/docker-certbot-dns-ionos)

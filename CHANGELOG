@@ -1,5 +1,17 @@
 # Changelog
 
-## 2014.1.8
+## Unreleased
 
-- First Release
+- Build Supercronic 0.2.47 with Go 1.26.5 to include current Go security fixes.
+- Replace persistent `doas` access with a root entrypoint that drops permanently
+  to the configured `certbot` UID and GID.
+- Rewrite the crontab on startup so container restarts cannot duplicate jobs.
+- Validate required configuration, the credentials mount, and the cron schedule
+  before starting the scheduler.
+- Preserve the `VERSION`, `CERTBOT_VERSION`, `USER_UID`, and `USER_GID` build
+  arguments used by the Authentik and MQTT stacks.
+- Add automated lint, build, smoke-test, and vulnerability-scan coverage.
+
+## 2024.1.8
+
+- First release.

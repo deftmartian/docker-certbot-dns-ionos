@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Lint shell scripts
+        uses: ludeeus/action-shellcheck@2.0.0
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build test image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: docker-certbot-dns-ionos:test
+
+      - name: Validate Compose example
+        env:
+          IONOS_DOMAINS: smoke-test.example
+          IONOS_EMAIL: smoke-test@example.com
+        run: docker compose config --quiet
+
+      - name: Run smoke test
+        run: tests/smoke.sh docker-certbot-dns-ionos:test
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: docker-certbot-dns-ionos:test
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+  multi-platform-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build supported platforms
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v6
+          push: false
+          cache-to: type=gha,mode=max
+          cache-from: type=gha

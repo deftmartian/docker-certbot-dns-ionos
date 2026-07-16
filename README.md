@@ -13,8 +13,8 @@ here do not propagate to those stacks automatically.
 
 The container starts as root only long enough to repair ownership on an
 existing `/certbot` volume and create its crontab. It then uses `su-exec` to
-replace itself with Supercronic as the unprivileged `certbot` user. There is no
-persistent root helper inside the running container.
+replace itself with Supercronic as the configured unprivileged UID and GID.
+There is no persistent root helper inside the running container.
 
 Supercronic 0.2.47 is built from source with Go 1.26.5 so the final binary does
 not inherit the vulnerable Go standard library used by the upstream 0.2.47
@@ -34,6 +34,8 @@ when needed.
 | `IONOS_PROPAGATION` | Seconds to wait for DNS propagation |
 | `IONOS_EMAIL` | Email passed to Certbot for ACME registration |
 | `IONOS_ARGS` | Optional whitespace-separated additional Certbot arguments |
+| `USER_UID` | Runtime UID for Supercronic and Certbot (default `1000`) |
+| `USER_GID` | Runtime GID for Supercronic and Certbot (default `1000`) |
 
 Create the credentials file with permissions that allow only the configured
 Certbot UID to read it:
@@ -61,9 +63,24 @@ docker compose up --build -d
 The included [compose.yaml](compose.yaml) builds the maintained local source.
 It does not pull the stale `gmmserv/docker-certbot-dns-ionos:2024.1.8` image.
 
+After CI passes on `main`, the same source is published for all supported
+platforms as:
+
+```text
+ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+ghcr.io/deftmartian/docker-certbot-dns-ionos:sha-<full-commit-sha>
+```
+
+GitHub creates a newly published package as private. Either make the package
+public once in its package settings so deployment hosts can pull it
+anonymously, or authenticate those hosts to `ghcr.io`.
+
 ## Build arguments
 
-The arguments consumed by the Authentik and MQTT stacks remain supported:
+The historical build arguments consumed by the Authentik and MQTT stacks
+remain supported. `USER_UID` and `USER_GID` also work as runtime environment
+variables, allowing one published image to serve stacks with different
+ownership requirements:
 
 | Argument | Default | Purpose |
 |---|---|---|

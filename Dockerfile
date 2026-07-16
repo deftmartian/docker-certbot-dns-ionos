@@ -33,6 +33,7 @@ ENV IONOS_VERSION="${VERSION}" \
     USERNAME="certbot" \
     USER_UID="${USER_UID}" \
     USER_GID="${USER_GID}" \
+    HOME="/certbot" \
     CERTBOT_BASE_DIR="/certbot" \
     CERTBOT_CONFIG_DIR="/certbot/etc/letsencrypt" \
     CERTBOT_LIVE_DIR="/certbot/etc/letsencrypt/live" \
@@ -67,7 +68,7 @@ RUN set -eux; \
 WORKDIR ${CERTBOT_BASE_DIR}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD ["pgrep", "-x", "supercronic"]
+    CMD ["sh", "-c", "ps | grep -q '[s]upercronic'"]
 
 STOPSIGNAL SIGTERM
 

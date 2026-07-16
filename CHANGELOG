@@ -10,6 +10,8 @@
   before starting the scheduler.
 - Preserve the `VERSION`, `CERTBOT_VERSION`, `USER_UID`, and `USER_GID` build
   arguments used by the Authentik and MQTT stacks.
+- Allow one published image to use stack-specific runtime UIDs and GIDs.
+- Publish tested multi-platform images to GitHub Container Registry.
 - Add automated lint, build, smoke-test, and vulnerability-scan coverage.
 
 ## 2024.1.8

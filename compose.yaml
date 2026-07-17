@@ -14,7 +14,7 @@ services:
       - ${HOME}/certbot:/certbot
       - ${HOME}/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets:ro
     environment:
-      TZ: ${TZ:-America/Halifax}
+      TZ: ${TZ:-Etc/UTC}
       IONOS_CREDENTIALS: /certbot/etc/letsencrypt/.secrets/ionos.ini
       IONOS_CRONTAB: ${IONOS_CRONTAB:-0 13 * * *}
       IONOS_DOMAINS: ${IONOS_DOMAINS:?Set IONOS_DOMAINS}

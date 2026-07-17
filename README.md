@@ -15,10 +15,10 @@ The public image is available from the
 ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
 ```
 
-This repository is the canonical source for the image used by the Authentik
-and MQTT stacks. Every successful push to `main` is linted, smoke-tested as
-both runtime identities used by those stacks, vulnerability-scanned, built for
-all supported platforms, and published to GHCR.
+This repository is the canonical source for the published image. Every
+successful push to `main` is linted, smoke-tested with multiple runtime
+identities, vulnerability-scanned, built for all supported platforms, and
+published to GHCR.
 
 ## Published image
 
@@ -125,10 +125,9 @@ image.
 
 ## Build arguments
 
-The historical build arguments consumed by the Authentik and MQTT stacks
-remain supported. `USER_UID` and `USER_GID` also work as runtime environment
-variables, allowing one published image to serve stacks with different
-ownership requirements:
+The original build argument interface remains supported. `USER_UID` and
+`USER_GID` also work as runtime environment variables, allowing one published
+image to serve deployments with different ownership requirements:
 
 | Argument | Default | Purpose |
 |---|---|---|

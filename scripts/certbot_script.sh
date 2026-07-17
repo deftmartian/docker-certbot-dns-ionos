@@ -49,9 +49,9 @@ if [ "${domain_count}" -eq 0 ]; then
     exit 1
 fi
 
-# IONOS_ARGS is retained for compatibility with the existing Authentik and
-# MQTT definitions. It is parsed as whitespace-separated arguments; shell
-# evaluation and pathname expansion are intentionally disabled.
+# IONOS_ARGS is retained for backwards compatibility. It is parsed as
+# whitespace-separated arguments; shell evaluation and pathname expansion are
+# intentionally disabled.
 if [ -n "${IONOS_ARGS:-}" ]; then
     set -f
     # shellcheck disable=SC2086

@@ -20,8 +20,7 @@ ARG VERSION=2024.11.09
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-LABEL org.opencontainers.image.authors="Andrew Bargen, Gianmarco Mameli" \
-      org.opencontainers.image.url="https://github.com/deftmartian/docker-certbot-dns-ionos" \
+LABEL org.opencontainers.image.url="https://github.com/deftmartian/docker-certbot-dns-ionos" \
       org.opencontainers.image.source="https://github.com/deftmartian/docker-certbot-dns-ionos" \
       org.opencontainers.image.base.name="certbot/certbot:${CERTBOT_VERSION}" \
       org.opencontainers.image.version="${VERSION}" \

@@ -1,13 +1,41 @@
 # docker-certbot-dns-ionos
 
-A scheduled, non-root Certbot container using the
-[`certbot-dns-ionos`](https://github.com/helgeerbe/certbot-dns-ionos)
-authenticator.
+[![CI](https://github.com/deftmartian/docker-certbot-dns-ionos/actions/workflows/ci.yml/badge.svg)](https://github.com/deftmartian/docker-certbot-dns-ionos/actions/workflows/ci.yml)
+[![GHCR](https://img.shields.io/badge/container-ghcr.io-blue)](https://github.com/deftmartian/docker-certbot-dns-ionos/pkgs/container/docker-certbot-dns-ionos)
 
-This repository is the maintained canonical source for the implementation
-shared by the Authentik and MQTT stacks. It preserves their existing build
-arguments. Until their vendored `certbot-build/` copies are replaced, changes
-here do not propagate to those stacks automatically.
+A maintained, multi-platform Certbot container that schedules certificate
+renewals with the
+[`certbot-dns-ionos`](https://github.com/helgeerbe/certbot-dns-ionos)
+DNS authenticator.
+
+The public image is available from the
+[GitHub Container Registry](https://github.com/deftmartian/docker-certbot-dns-ionos/pkgs/container/docker-certbot-dns-ionos):
+
+```text
+ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+```
+
+This repository is the canonical source for the image used by the Authentik
+and MQTT stacks. Every successful push to `main` is linted, smoke-tested as
+both runtime identities used by those stacks, vulnerability-scanned, built for
+all supported platforms, and published to GHCR.
+
+## Published image
+
+Pull the current image without registry authentication:
+
+```shell
+docker pull ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+```
+
+Successful `main` builds publish two tags:
+
+- `latest` — the current tested image
+- `sha-<full-commit-sha>` — an immutable source-specific image
+
+Published platforms are `linux/amd64`, `linux/arm64`, and `linux/arm/v6`.
+`linux/arm/v7` is intentionally omitted because the official Certbot base
+image does not publish an arm/v7 manifest.
 
 ## Runtime model
 
@@ -49,10 +77,42 @@ dns_ionos_endpoint = https://api.hosting.ionos.com
 The credentials directory should be mounted read-only at
 `/certbot/etc/letsencrypt/.secrets`. Never commit the credentials file.
 
-## Compose
+## Quick start
 
 Copy `ionos.ini.tmpl` to `${HOME}/certbot/etc/letsencrypt/.secrets/ionos.ini`,
-fill in the credentials, then set at least `IONOS_DOMAINS` and `IONOS_EMAIL`:
+fill in the credentials, and restrict access to the configured runtime UID:
+
+```shell
+mkdir -p "${HOME}/certbot/etc/letsencrypt/.secrets"
+cp ionos.ini.tmpl "${HOME}/certbot/etc/letsencrypt/.secrets/ionos.ini"
+chmod 600 "${HOME}/certbot/etc/letsencrypt/.secrets/ionos.ini"
+```
+
+Then start the published image:
+
+```shell
+docker run --detach \
+  --name certbot-ionos \
+  --restart unless-stopped \
+  --env USER_UID="$(id -u)" \
+  --env USER_GID="$(id -g)" \
+  --env IONOS_CREDENTIALS=/certbot/etc/letsencrypt/.secrets/ionos.ini \
+  --env 'IONOS_CRONTAB=0 13 * * *' \
+  --env 'IONOS_DOMAINS=example.com,*.example.com' \
+  --env IONOS_PROPAGATION=300 \
+  --env IONOS_EMAIL=admin@example.com \
+  --volume "${HOME}/certbot:/certbot" \
+  --volume "${HOME}/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets:ro" \
+  ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+```
+
+The credentials mount remains read-only. Certificate state is persisted below
+`${HOME}/certbot/etc/letsencrypt`.
+
+## Local development with Compose
+
+The included [compose.yaml](compose.yaml) builds the current checkout so local
+changes can be tested before they are published:
 
 ```shell
 export IONOS_DOMAINS='example.com,*.example.com'
@@ -60,20 +120,8 @@ export IONOS_EMAIL='admin@example.com'
 docker compose up --build -d
 ```
 
-The included [compose.yaml](compose.yaml) builds the maintained local source.
-It does not pull the stale `gmmserv/docker-certbot-dns-ionos:2024.1.8` image.
-
-After CI passes on `main`, the same source is published for all supported
-platforms as:
-
-```text
-ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
-ghcr.io/deftmartian/docker-certbot-dns-ionos:sha-<full-commit-sha>
-```
-
-GitHub creates a newly published package as private. Either make the package
-public once in its package settings so deployment hosts can pull it
-anonymously, or authenticate those hosts to `ghcr.io`.
+This does not pull the obsolete `gmmserv/docker-certbot-dns-ionos:2024.1.8`
+image.
 
 ## Build arguments
 
@@ -104,16 +152,12 @@ docker build \
   .
 ```
 
-Or build the supported `linux/amd64`, `linux/arm64`, and `linux/arm/v6`
-platforms with Bake:
+Or build all supported platforms with Bake:
 
 ```shell
 IMAGE=ghcr.io/deftmartian/docker-certbot-dns-ionos \
 docker buildx bake --file docker-bake.hcl --push
 ```
-
-`linux/arm/v7` is intentionally omitted because the current official Certbot
-image does not publish an arm/v7 base manifest.
 
 ## Validation
 

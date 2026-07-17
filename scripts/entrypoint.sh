@@ -55,8 +55,8 @@ fi
 # Fail at startup rather than silently running with a malformed schedule.
 su-exec "${runtime_user}" /usr/local/bin/supercronic -test "${cron_file}"
 
-printf 'time="%s" level=info msg="docker-certbot-dns-ionos %s started"\n' \
-    "$(date -Is || true)" "${IONOS_VERSION}"
+printf 'time="%s" level=info msg="docker-certbot-dns-ionos %s started (certbot-dns-ionos %s)"\n' \
+    "$(date -Is || true)" "${IMAGE_VERSION}" "${IONOS_VERSION}"
 printf 'time="%s" level=info msg="starting %s as UID:GID %s"\n' \
     "$(date -Is || true)" "$*" "${runtime_user}"
 

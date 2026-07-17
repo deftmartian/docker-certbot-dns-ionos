@@ -12,25 +12,27 @@ The public image is available from the
 [GitHub Container Registry](https://github.com/deftmartian/docker-certbot-dns-ionos/pkgs/container/docker-certbot-dns-ionos):
 
 ```text
-ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.07.16
 ```
 
-This repository is the canonical source for the published image. Every
-successful push to `main` is linted, smoke-tested with multiple runtime
-identities, vulnerability-scanned, built for all supported platforms, and
-published to GHCR.
+This repository is the canonical source for the published image. Pull requests,
+pushes to `main`, and release tags are linted, smoke-tested with multiple
+runtime identities, vulnerability-scanned, and built for all supported
+platforms. Matching release tags publish the tested image to GHCR and create a
+GitHub release.
 
 ## Published image
 
 Pull the current image without registry authentication:
 
 ```shell
-docker pull ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+docker pull ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.07.16
 ```
 
-Successful `main` builds publish two tags:
+Successful release builds publish three tags for the same image:
 
-- `latest` — the current tested image
+- `2026.07.16` — the immutable container release
+- `latest` — the current container release
 - `sha-<full-commit-sha>` — an immutable source-specific image
 
 Published platforms are `linux/amd64`, `linux/arm64`, and `linux/arm/v6`.
@@ -103,7 +105,7 @@ docker run --detach \
   --env IONOS_EMAIL=admin@example.com \
   --volume "${HOME}/certbot:/certbot" \
   --volume "${HOME}/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets:ro" \
-  ghcr.io/deftmartian/docker-certbot-dns-ionos:latest
+  ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.07.16
 ```
 
 The credentials mount remains read-only. Certificate state is persisted below
@@ -131,7 +133,8 @@ image to serve deployments with different ownership requirements:
 
 | Argument | Default | Purpose |
 |---|---|---|
-| `VERSION` | `2024.11.09` | `certbot-dns-ionos` package version |
+| `IMAGE_VERSION` | `2026.07.16` | Container release version |
+| `VERSION` | `2024.11.09` | Upstream `certbot-dns-ionos` package version |
 | `CERTBOT_VERSION` | `v5.7.0` | `certbot/certbot` base image tag |
 | `USER_UID` | `1000` | Runtime `certbot` UID |
 | `USER_GID` | `1000` | Runtime `certbot` GID |
@@ -143,11 +146,12 @@ Build directly:
 
 ```shell
 docker build \
+  --build-arg IMAGE_VERSION=2026.07.16 \
   --build-arg VERSION=2024.11.09 \
   --build-arg CERTBOT_VERSION=v5.7.0 \
   --build-arg USER_UID=1000 \
   --build-arg USER_GID=1000 \
-  --tag docker-certbot-dns-ionos:2024.11.09 \
+  --tag docker-certbot-dns-ionos:2026.07.16 \
   .
 ```
 
@@ -168,10 +172,18 @@ vulnerabilities.
 Run the same smoke test locally after building:
 
 ```shell
-tests/smoke.sh docker-certbot-dns-ionos:2024.11.09
+tests/smoke.sh docker-certbot-dns-ionos:2026.07.16
 ```
 
 Set `CONTAINER_RUNTIME=podman` when using Podman.
+
+## Releasing
+
+The container release and upstream plugin use separate version numbers. To
+release the container, update `IMAGE_VERSION` in the Dockerfile, Bake file,
+Compose example, README, and changelog. Commit those changes, then push a tag
+whose name exactly matches `IMAGE_VERSION`. CI rejects mismatched tags before
+publishing and creates the GitHub release from the matching changelog section.
 
 ## Credits
 

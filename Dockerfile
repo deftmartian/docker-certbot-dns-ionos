@@ -17,17 +17,19 @@ FROM certbot/certbot:${CERTBOT_VERSION}
 ARG CERTBOT_VERSION
 ARG SUPERCRONIC_VERSION
 ARG VERSION=2024.11.09
+ARG IMAGE_VERSION=2026.07.16
 ARG USER_UID=1000
 ARG USER_GID=1000
 
 LABEL org.opencontainers.image.url="https://github.com/deftmartian/docker-certbot-dns-ionos" \
       org.opencontainers.image.source="https://github.com/deftmartian/docker-certbot-dns-ionos" \
       org.opencontainers.image.base.name="certbot/certbot:${CERTBOT_VERSION}" \
-      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.description="Scheduled Certbot renewals using the IONOS DNS authenticator"
 
-ENV IONOS_VERSION="${VERSION}" \
+ENV IMAGE_VERSION="${IMAGE_VERSION}" \
+    IONOS_VERSION="${VERSION}" \
     SUPERCRONIC_VERSION="${SUPERCRONIC_VERSION}" \
     USERNAME="certbot" \
     USER_UID="${USER_UID}" \

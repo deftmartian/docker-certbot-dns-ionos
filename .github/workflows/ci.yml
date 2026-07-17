@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["*.*.*"]
   pull_request:
   schedule:
     - cron: "17 8 * * 1"
@@ -92,7 +93,7 @@ jobs:
           cache-from: type=gha
 
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: [lint, build-and-test, multi-platform-build]
     runs-on: ubuntu-latest
     permissions:
@@ -115,6 +116,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          image_version=$(sed -n 's/^ARG IMAGE_VERSION=//p' Dockerfile)
+          test "${GITHUB_REF_NAME}" = "${image_version}"
+          grep -Fxq "## ${GITHUB_REF_NAME}" CHANGELOG
+
       - name: Generate image metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -122,6 +130,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
+            type=ref,event=tag
             type=sha,format=long
 
       - name: Publish supported platforms
@@ -132,5 +141,33 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            IMAGE_VERSION=${{ github.ref_name }}
           cache-to: type=gha,mode=max
           cache-from: type=gha
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Create GitHub release from changelog
+        shell: bash
+        run: |
+          awk -v version="${GITHUB_REF_NAME}" '
+            $0 == "## " version { in_release = 1; next }
+            in_release && /^## / { exit }
+            in_release { print }
+          ' CHANGELOG > release-notes.md
+          test -s release-notes.md
+          gh release create "${GITHUB_REF_NAME}" \
+            --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md

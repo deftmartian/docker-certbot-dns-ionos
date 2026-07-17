@@ -5,11 +5,12 @@ services:
     build:
       context: .
       args:
+        IMAGE_VERSION: ${CERTBOT_IMAGE_VERSION:-2026.07.16}
         VERSION: ${CERTBOT_IONOS_VERSION:-2024.11.09}
         CERTBOT_VERSION: ${CERTBOT_VERSION:-v5.7.0}
         USER_UID: ${CERTBOT_PUID:-1000}
         USER_GID: ${CERTBOT_PGID:-1000}
-    image: docker-certbot-dns-ionos:${CERTBOT_IONOS_VERSION:-2024.11.09}
+    image: docker-certbot-dns-ionos:${CERTBOT_IMAGE_VERSION:-2026.07.16}
     volumes:
       - ${HOME}/certbot:/certbot
       - ${HOME}/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets:ro

@@ -78,6 +78,27 @@ if [ "${actual_gid}" != "${expected_gid}" ]; then
     exit 1
 fi
 
+image_version=$("${container_runtime}" exec "${container_name}" printenv IMAGE_VERSION)
+label_version=$("${container_runtime}" inspect --format \
+    '{{ index .Config.Labels "org.opencontainers.image.version" }}' "${container_name}")
+if [ "${label_version}" != "${image_version}" ]; then
+    echo "image label version ${label_version} does not match runtime version ${image_version}" >&2
+    exit 1
+fi
+
+if ! "${container_runtime}" exec "${container_name}" python -c \
+    'import importlib.metadata, os; from packaging.version import Version; assert Version(importlib.metadata.version("certbot-dns-ionos")) == Version(os.environ["IONOS_VERSION"])'; then
+    echo "installed certbot-dns-ionos version does not match IONOS_VERSION" >&2
+    exit 1
+fi
+
+ionos_version=$("${container_runtime}" exec "${container_name}" printenv IONOS_VERSION)
+if ! "${container_runtime}" logs "${container_name}" 2>&1 | grep -Fq \
+    "docker-certbot-dns-ionos ${image_version} started (certbot-dns-ionos ${ionos_version})"; then
+    echo "startup log does not identify both image and plugin versions" >&2
+    exit 1
+fi
+
 cron_lines=$("${container_runtime}" exec "${container_name}" \
     sh -c 'wc -l < /tmp/crontabs/certbot')
 if [ "${cron_lines}" -ne 1 ]; then

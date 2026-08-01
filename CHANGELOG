@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Remove the unused `uv` and `uvx` tooling inherited from the Certbot base
+  image so vulnerable Rust dependencies are not shipped in the runtime image.
+
 ## 2026.07.16
 
 - Build Supercronic 0.2.47 with Go 1.26.5 to include current Go security fixes.

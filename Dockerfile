@@ -52,7 +52,11 @@ RUN set -eux; \
 
 COPY --from=supercronic-builder /out/supercronic /usr/local/bin/supercronic
 
-RUN pip install --no-cache-dir "certbot-dns-ionos==${VERSION}"
+RUN set -eux; \
+    pip install --no-cache-dir "certbot-dns-ionos==${VERSION}"; \
+    pip uninstall --yes uv; \
+    ! command -v uv; \
+    ! command -v uvx
 
 COPY scripts/*.sh /
 

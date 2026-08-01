@@ -38,6 +38,7 @@ dns_ionos_endpoint = https://api.hosting.ionos.com
 EOF
 # This is fake test data. Production credentials should instead be mode 0600
 # and owned by the configured certbot UID.
+chmod 0755 "${secrets_dir}"
 chmod 0644 "${secrets_dir}/ionos.ini"
 
 "${container_runtime}" run --detach \
@@ -121,6 +122,13 @@ if ! "${container_runtime}" exec --user "${expected_uid}:${expected_gid}" \
     echo "supercronic is not visible to the image healthcheck" >&2
     "${container_runtime}" exec "${container_name}" ps >&2 || true
     "${container_runtime}" logs "${container_name}" >&2
+    exit 1
+fi
+
+if "${container_runtime}" exec --user "${expected_uid}:${expected_gid}" \
+    "${container_name}" sh -c \
+    'command -v uv >/dev/null 2>&1 || command -v uvx >/dev/null 2>&1'; then
+    echo "unused uv tooling is present in the runtime image" >&2
     exit 1
 fi
 

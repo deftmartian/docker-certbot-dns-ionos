@@ -55,8 +55,10 @@ COPY --from=supercronic-builder /out/supercronic /usr/local/bin/supercronic
 RUN set -eux; \
     pip install --no-cache-dir "certbot-dns-ionos==${VERSION}"; \
     pip uninstall --yes uv; \
-    ! command -v uv; \
-    ! command -v uvx
+    if command -v uv || command -v uvx; then \
+        echo "unused uv tooling is present in the runtime image" >&2; \
+        exit 1; \
+    fi
 
 COPY scripts/*.sh /
 

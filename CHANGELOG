@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2026.08.01
+
 - Remove the unused `uv` and `uvx` tooling inherited from the Certbot base
   image so vulnerable Rust dependencies are not shipped in the runtime image.
 

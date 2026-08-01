@@ -7,7 +7,7 @@ variable "VERSION" {
 }
 
 variable "IMAGE_VERSION" {
-  default = "2026.07.16"
+  default = "2026.08.01"
 }
 
 variable "CERTBOT_VERSION" {

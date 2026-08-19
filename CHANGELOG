@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Update Go to 1.26.6 and cryptography to 50.0.0 to resolve the fixable high
+  severity vulnerabilities reported by the scheduled image scan.
+
 ## 2026.08.01
 
 - Remove the unused `uv` and `uvx` tooling inherited from the Certbot base

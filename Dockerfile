@@ -1,5 +1,6 @@
-ARG GOLANG_VERSION=1.26.5-alpine
+ARG GOLANG_VERSION=1.26.6-alpine
 ARG CERTBOT_VERSION=v5.7.0
+ARG CRYPTOGRAPHY_VERSION=50.0.0
 ARG SUPERCRONIC_VERSION=v0.2.47
 
 FROM golang:${GOLANG_VERSION} AS supercronic-builder
@@ -15,6 +16,7 @@ RUN CGO_ENABLED=0 GOBIN=/out \
 FROM certbot/certbot:${CERTBOT_VERSION}
 
 ARG CERTBOT_VERSION
+ARG CRYPTOGRAPHY_VERSION
 ARG SUPERCRONIC_VERSION
 ARG VERSION=2024.11.09
 ARG IMAGE_VERSION=2026.08.01
@@ -29,6 +31,7 @@ LABEL org.opencontainers.image.url="https://github.com/deftmartian/docker-certbo
       org.opencontainers.image.description="Scheduled Certbot renewals using the IONOS DNS authenticator"
 
 ENV IMAGE_VERSION="${IMAGE_VERSION}" \
+    CRYPTOGRAPHY_VERSION="${CRYPTOGRAPHY_VERSION}" \
     IONOS_VERSION="${VERSION}" \
     SUPERCRONIC_VERSION="${SUPERCRONIC_VERSION}" \
     USERNAME="certbot" \
@@ -52,8 +55,28 @@ RUN set -eux; \
 
 COPY --from=supercronic-builder /out/supercronic /usr/local/bin/supercronic
 
+# cryptography does not publish musllinux wheels for arm/v6, so retain the
+# repository's supported platform by building it with temporary dependencies.
+# hadolint ignore=DL3018
 RUN set -eux; \
-    pip install --no-cache-dir "certbot-dns-ionos==${VERSION}"; \
+    apk add --no-cache --virtual .cryptography-build-deps \
+        cargo \
+        gcc \
+        git \
+        libffi-dev \
+        linux-headers \
+        musl-dev \
+        openssl-dev \
+        pkgconfig \
+        python3-dev; \
+    CARGO_NET_GIT_FETCH_WITH_CLI=true \
+        CARGO_LOG=trace \
+        CARGO_TERM_VERBOSE=true \
+        pip install --no-cache-dir \
+            "cryptography==${CRYPTOGRAPHY_VERSION}" \
+            "certbot-dns-ionos==${VERSION}"; \
+    apk del .cryptography-build-deps; \
+    rm -rf "${HOME}/.cargo"; \
     pip uninstall --yes uv; \
     if command -v uv || command -v uvx; then \
         echo "unused uv tooling is present in the runtime image" >&2; \

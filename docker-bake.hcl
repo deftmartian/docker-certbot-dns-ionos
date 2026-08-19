@@ -14,8 +14,12 @@ variable "CERTBOT_VERSION" {
   default = "v5.7.0"
 }
 
+variable "CRYPTOGRAPHY_VERSION" {
+  default = "50.0.0"
+}
+
 variable "GOLANG_VERSION" {
-  default = "1.26.5-alpine"
+  default = "1.26.6-alpine"
 }
 
 variable "SUPERCRONIC_VERSION" {
@@ -36,6 +40,7 @@ target "default" {
     VERSION              = VERSION
     IMAGE_VERSION        = IMAGE_VERSION
     CERTBOT_VERSION      = CERTBOT_VERSION
+    CRYPTOGRAPHY_VERSION = CRYPTOGRAPHY_VERSION
     GOLANG_VERSION       = GOLANG_VERSION
     SUPERCRONIC_VERSION  = SUPERCRONIC_VERSION
     USER_UID             = USER_UID

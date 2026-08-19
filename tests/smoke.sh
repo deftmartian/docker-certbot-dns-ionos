@@ -93,6 +93,12 @@ if ! "${container_runtime}" exec "${container_name}" python -c \
     exit 1
 fi
 
+if ! "${container_runtime}" exec "${container_name}" python -c \
+    'import importlib.metadata, os; from packaging.version import Version; assert Version(importlib.metadata.version("cryptography")) == Version(os.environ["CRYPTOGRAPHY_VERSION"])'; then
+    echo "installed cryptography version does not match CRYPTOGRAPHY_VERSION" >&2
+    exit 1
+fi
+
 ionos_version=$("${container_runtime}" exec "${container_name}" printenv IONOS_VERSION)
 if ! "${container_runtime}" logs "${container_name}" 2>&1 | grep -Fq \
     "docker-certbot-dns-ionos ${image_version} started (certbot-dns-ionos ${ionos_version})"; then

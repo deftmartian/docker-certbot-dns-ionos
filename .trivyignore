@@ -1,5 +1,0 @@
-# Importable packages are setuptools 84.x and msgpack 1.2.2. Trivy still
-# reports the Certbot base image's older Python package metadata for these
-# two advisories after pip upgrade. They are not loadable at runtime.
-CVE-2025-47273
-GHSA-6v7p-g79w-8964

@@ -60,7 +60,6 @@ RUN set -eux; \
         su-exec \
         util-linux \
         libuuid; \
-    apk info -v util-linux libuuid; \
     mkdir -p "${CERTBOT_BASE_DIR}"; \
     addgroup -g "${USER_GID}" -S "${USERNAME}"; \
     adduser -u "${USER_UID}" -S "${USERNAME}" -G "${USERNAME}" -h "${CERTBOT_BASE_DIR}"; \
@@ -87,17 +86,9 @@ RUN set -eux; \
         CARGO_TERM_VERBOSE=true \
         pip install --no-cache-dir \
             "cryptography==${CRYPTOGRAPHY_VERSION}" \
-            "certbot-dns-ionos==${VERSION}"; \
-    pip install --no-cache-dir --upgrade \
+            "certbot-dns-ionos==${VERSION}" \
             "setuptools>=78.1.1" \
             "msgpack>=1.2.1"; \
-    find /usr /opt -depth \( \
-            -name 'setuptools-70.*' -o \
-            -name 'msgpack-1.1.*' \
-        \) -exec rm -rf {} +; \
-    python -c "import setuptools, msgpack; \
-        assert setuptools.__version__.split('.') >= ['78','1','1'], setuptools.__version__; \
-        print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack));"; \
     apk del .cryptography-build-deps; \
     rm -rf "${HOME}/.cargo"; \
     pip uninstall --yes uv; \

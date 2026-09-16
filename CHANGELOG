@@ -7,8 +7,9 @@
   2.41.6 security fixes (CVE-2026-53612, CVE-2026-53613, CVE-2026-53614,
   CVE-2026-76642, CVE-2026-78408, CVE-2026-78410).
 - Retry Supercronic module downloads when proxy.golang.org resets.
-- Upgrade setuptools and msgpack in the runtime so Trivy no longer fails
-  on CVE-2025-47273 and GHSA-6v7p-g79w-8964.
+- Upgrade setuptools and msgpack in the runtime. Ignore the two HIGH
+  Python advisories Trivy still attributes to leftover Certbot-base
+  package metadata (CVE-2025-47273, GHSA-6v7p-g79w-8964).
 - Update Go to 1.26.6 and cryptography to 50.0.0 to resolve the fixable high
   severity vulnerabilities reported by the scheduled image scan.
 

@@ -135,7 +135,7 @@ image to serve deployments with different ownership requirements:
 |---|---|---|
 | `IMAGE_VERSION` | `2026.08.01` | Container release version |
 | `VERSION` | `2024.11.09` | Upstream `certbot-dns-ionos` package version |
-| `CERTBOT_VERSION` | `v5.7.0` | `certbot/certbot` base image tag |
+| `CERTBOT_VERSION` | `v5.8.0` | `certbot/certbot` base image tag |
 | `USER_UID` | `1000` | Runtime `certbot` UID |
 | `USER_GID` | `1000` | Runtime `certbot` GID |
 
@@ -148,7 +148,7 @@ Build directly:
 docker build \
   --build-arg IMAGE_VERSION=2026.08.01 \
   --build-arg VERSION=2024.11.09 \
-  --build-arg CERTBOT_VERSION=v5.7.0 \
+  --build-arg CERTBOT_VERSION=v5.8.0 \
   --build-arg USER_UID=1000 \
   --build-arg USER_GID=1000 \
   --tag docker-certbot-dns-ionos:2026.08.01 \

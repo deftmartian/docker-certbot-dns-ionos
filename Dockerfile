@@ -56,8 +56,11 @@ ENV IMAGE_VERSION="${IMAGE_VERSION}" \
 
 # hadolint ignore=DL3018
 RUN set -eux; \
-    apk add --no-cache su-exec; \
-    apk upgrade --no-cache; \
+    apk add --no-cache --upgrade \
+        su-exec \
+        util-linux \
+        libuuid; \
+    apk info -v util-linux libuuid; \
     mkdir -p "${CERTBOT_BASE_DIR}"; \
     addgroup -g "${USER_GID}" -S "${USERNAME}"; \
     adduser -u "${USER_UID}" -S "${USERNAME}" -G "${USERNAME}" -h "${CERTBOT_BASE_DIR}"; \

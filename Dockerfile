@@ -88,6 +88,9 @@ RUN set -eux; \
         pip install --no-cache-dir \
             "cryptography==${CRYPTOGRAPHY_VERSION}" \
             "certbot-dns-ionos==${VERSION}"; \
+    pip install --no-cache-dir --upgrade \
+            "setuptools>=78.1.1" \
+            "msgpack>=1.2.1"; \
     apk del .cryptography-build-deps; \
     rm -rf "${HOME}/.cargo"; \
     pip uninstall --yes uv; \

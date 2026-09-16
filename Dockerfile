@@ -1,5 +1,5 @@
-ARG GOLANG_VERSION=1.26.6-alpine
-ARG CERTBOT_VERSION=v5.7.0
+ARG GOLANG_VERSION=1.26.8-alpine
+ARG CERTBOT_VERSION=v5.8.0
 ARG CRYPTOGRAPHY_VERSION=50.0.0
 ARG SUPERCRONIC_VERSION=v0.2.47
 
@@ -9,9 +9,18 @@ ARG SUPERCRONIC_VERSION
 
 # Build Supercronic with the patched Go toolchain rather than shipping the
 # upstream release binary, which was built with an older Go standard library.
-RUN CGO_ENABLED=0 GOBIN=/out \
-    go install -ldflags "-X main.Version=${SUPERCRONIC_VERSION}" \
-    "github.com/aptible/supercronic@${SUPERCRONIC_VERSION}"
+# Retry module fetches; proxy.golang.org occasionally resets mid-download.
+RUN set -eux; \
+    i=0; \
+    until CGO_ENABLED=0 GOBIN=/out GOPROXY=https://proxy.golang.org,direct \
+        go install -ldflags "-X main.Version=${SUPERCRONIC_VERSION}" \
+        "github.com/aptible/supercronic@${SUPERCRONIC_VERSION}"; do \
+        i=$((i + 1)); \
+        if [ "$i" -ge 5 ]; then \
+            exit 1; \
+        fi; \
+        sleep $((i * 3)); \
+    done
 
 FROM certbot/certbot:${CERTBOT_VERSION}
 
@@ -48,6 +57,7 @@ ENV IMAGE_VERSION="${IMAGE_VERSION}" \
 # hadolint ignore=DL3018
 RUN set -eux; \
     apk add --no-cache su-exec; \
+    apk upgrade --no-cache; \
     mkdir -p "${CERTBOT_BASE_DIR}"; \
     addgroup -g "${USER_GID}" -S "${USERNAME}"; \
     adduser -u "${USER_UID}" -S "${USERNAME}" -G "${USERNAME}" -h "${CERTBOT_BASE_DIR}"; \

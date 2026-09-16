@@ -91,6 +91,13 @@ RUN set -eux; \
     pip install --no-cache-dir --upgrade \
             "setuptools>=78.1.1" \
             "msgpack>=1.2.1"; \
+    find /usr /opt -depth \( \
+            -name 'setuptools-70.*' -o \
+            -name 'msgpack-1.1.*' \
+        \) -exec rm -rf {} +; \
+    python -c "import setuptools, msgpack; \
+        assert setuptools.__version__.split('.') >= ['78','1','1'], setuptools.__version__; \
+        print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack));"; \
     apk del .cryptography-build-deps; \
     rm -rf "${HOME}/.cargo"; \
     pip uninstall --yes uv; \

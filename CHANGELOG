@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- Update Certbot to v5.8.0 and Go to 1.26.8.
+- Update Certbot to v5.8.0 and build Supercronic with Go 1.26.9.
+- Upgrade urllib3 to 2.8.0 and remove leftover 2.7 metadata. The weekly
+  scan was failing on CVE-2026-97687 and CVE-2026-97689, and on Go stdlib
+  CVE-2026-78667, CVE-2026-78669, and CVE-2026-97031 in the 1.26.8 build.
 - Upgrade Alpine packages at image build so util-linux/libuuid pick up the
   2.41.6 security fixes (CVE-2026-53612, CVE-2026-53613, CVE-2026-53614,
   CVE-2026-76642, CVE-2026-78408, CVE-2026-78410).

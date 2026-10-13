@@ -104,9 +104,11 @@ RUN set -eux; \
         print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack), 'urllib3', urllib3.__version__);"; \
     apk del .cryptography-build-deps; \
     rm -rf "${HOME}/.cargo"; \
-    pip uninstall --yes uv; \
-    if command -v uv || command -v uvx; then \
-        echo "unused uv tooling is present in the runtime image" >&2; \
+    pip check; \
+    pip uninstall --yes uv pip; \
+    find /usr/local/lib -path '*/ensurepip/_bundled/pip-*.whl' -delete; \
+    if sh -c 'command -v uv || command -v uvx || command -v pip || command -v pip3'; then \
+        echo "unused uv or pip tooling is present in the runtime image" >&2; \
         exit 1; \
     fi
 

@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.26.8-alpine
+ARG GOLANG_VERSION=1.26.9-alpine
 ARG CERTBOT_VERSION=v5.8.0
 ARG CRYPTOGRAPHY_VERSION=50.0.0
 ARG SUPERCRONIC_VERSION=v0.2.47
@@ -90,19 +90,25 @@ RUN set -eux; \
             "certbot-dns-ionos==${VERSION}"; \
     pip install --no-cache-dir --upgrade \
             "setuptools>=78.1.1" \
-            "msgpack>=1.2.1"; \
+            "msgpack>=1.2.1" \
+            "urllib3>=2.8.0"; \
     find /usr /opt -depth \( \
             -name 'setuptools-70.*' -o \
-            -name 'msgpack-1.1.*' \
+            -name 'msgpack-1.1.*' -o \
+            -name 'urllib3-2.7.*' \
         \) -exec rm -rf {} +; \
-    python -c "import setuptools, msgpack; \
+    python -c "import setuptools, msgpack, urllib3; \
         assert setuptools.__version__.split('.') >= ['78','1','1'], setuptools.__version__; \
-        print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack));"; \
+        urllib_version = tuple(int(part) for part in urllib3.__version__.split('.')[:3]); \
+        assert urllib_version >= (2, 8, 0), urllib3.__version__; \
+        print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack), 'urllib3', urllib3.__version__);"; \
     apk del .cryptography-build-deps; \
     rm -rf "${HOME}/.cargo"; \
-    pip uninstall --yes uv; \
-    if command -v uv || command -v uvx; then \
-        echo "unused uv tooling is present in the runtime image" >&2; \
+    pip check; \
+    pip uninstall --yes uv pip; \
+    find /usr/local/lib -path '*/ensurepip/_bundled/pip-*.whl' -delete; \
+    if sh -c 'command -v uv || command -v uvx || command -v pip || command -v pip3'; then \
+        echo "unused uv or pip tooling is present in the runtime image" >&2; \
         exit 1; \
     fi
 

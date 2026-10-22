@@ -99,6 +99,12 @@ if ! "${container_runtime}" exec "${container_name}" python -c \
     exit 1
 fi
 
+if ! "${container_runtime}" exec "${container_name}" python -c \
+    'import certifi; parts = tuple(int(part) for part in certifi.__version__.split(".")[:3]); assert parts >= (2026, 10, 19), certifi.__version__'; then
+    echo "installed certifi is older than 2026.10.19" >&2
+    exit 1
+fi
+
 ionos_version=$("${container_runtime}" exec "${container_name}" printenv IONOS_VERSION)
 if ! "${container_runtime}" logs "${container_name}" 2>&1 | grep -Fq \
     "docker-certbot-dns-ionos ${image_version} started (certbot-dns-ionos ${ionos_version})"; then

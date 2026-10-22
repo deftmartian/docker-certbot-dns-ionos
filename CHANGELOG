@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2026.10.22
+
 - Build Supercronic with Go 1.26.10 and upgrade certifi to 2026.10.19.
   The weekly scan was failing on CVE-2026-111943 in the Go 1.26.9 standard
   library and on GHSA-6q48-6c7w-9gw2 in certifi 2026.7.22.

@@ -7,7 +7,7 @@ variable "VERSION" {
 }
 
 variable "IMAGE_VERSION" {
-  default = "2026.08.01"
+  default = "2026.10.22"
 }
 
 variable "CERTBOT_VERSION" {
@@ -19,7 +19,7 @@ variable "CRYPTOGRAPHY_VERSION" {
 }
 
 variable "GOLANG_VERSION" {
-  default = "1.26.9-alpine"
+  default = "1.26.10-alpine"
 }
 
 variable "SUPERCRONIC_VERSION" {

@@ -12,7 +12,7 @@ The public image is available from the
 [GitHub Container Registry](https://github.com/deftmartian/docker-certbot-dns-ionos/pkgs/container/docker-certbot-dns-ionos):
 
 ```text
-ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.08.01
+ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.10.22
 ```
 
 This repository is the canonical source for the published image. Pull requests,
@@ -26,12 +26,12 @@ GitHub release.
 Pull the current image without registry authentication:
 
 ```shell
-docker pull ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.08.01
+docker pull ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.10.22
 ```
 
 Successful release builds publish three tags for the same image:
 
-- `2026.08.01` — the immutable container release
+- `2026.10.22` — the immutable container release
 - `latest` — the current container release
 - `sha-<full-commit-sha>` — an immutable source-specific image
 
@@ -46,7 +46,7 @@ existing `/certbot` volume and create its crontab. It then uses `su-exec` to
 replace itself with Supercronic as the configured unprivileged UID and GID.
 There is no persistent root helper inside the running container.
 
-Supercronic 0.2.47 is built from source with Go 1.26.5 so the final binary does
+Supercronic 0.2.47 is built from source with Go 1.26.10 so the final binary does
 not inherit the vulnerable Go standard library used by the upstream 0.2.47
 release asset.
 
@@ -105,7 +105,7 @@ docker run --detach \
   --env IONOS_EMAIL=admin@example.com \
   --volume "${HOME}/certbot:/certbot" \
   --volume "${HOME}/certbot/etc/letsencrypt/.secrets:/certbot/etc/letsencrypt/.secrets:ro" \
-  ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.08.01
+  ghcr.io/deftmartian/docker-certbot-dns-ionos:2026.10.22
 ```
 
 The credentials mount remains read-only. Certificate state is persisted below
@@ -133,7 +133,7 @@ image to serve deployments with different ownership requirements:
 
 | Argument | Default | Purpose |
 |---|---|---|
-| `IMAGE_VERSION` | `2026.08.01` | Container release version |
+| `IMAGE_VERSION` | `2026.10.22` | Container release version |
 | `VERSION` | `2024.11.09` | Upstream `certbot-dns-ionos` package version |
 | `CERTBOT_VERSION` | `v5.8.0` | `certbot/certbot` base image tag |
 | `USER_UID` | `1000` | Runtime `certbot` UID |
@@ -146,12 +146,12 @@ Build directly:
 
 ```shell
 docker build \
-  --build-arg IMAGE_VERSION=2026.08.01 \
+  --build-arg IMAGE_VERSION=2026.10.22 \
   --build-arg VERSION=2024.11.09 \
   --build-arg CERTBOT_VERSION=v5.8.0 \
   --build-arg USER_UID=1000 \
   --build-arg USER_GID=1000 \
-  --tag docker-certbot-dns-ionos:2026.08.01 \
+  --tag docker-certbot-dns-ionos:2026.10.22 \
   .
 ```
 
@@ -172,7 +172,7 @@ vulnerabilities.
 Run the same smoke test locally after building:
 
 ```shell
-tests/smoke.sh docker-certbot-dns-ionos:2026.08.01
+tests/smoke.sh docker-certbot-dns-ionos:2026.10.22
 ```
 
 Set `CONTAINER_RUNTIME=podman` when using Podman.

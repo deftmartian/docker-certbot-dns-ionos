@@ -133,8 +133,8 @@ fi
 
 if "${container_runtime}" exec --user "${expected_uid}:${expected_gid}" \
     "${container_name}" sh -c \
-    'command -v uv >/dev/null 2>&1 || command -v uvx >/dev/null 2>&1'; then
-    echo "unused uv tooling is present in the runtime image" >&2
+    'command -v uv >/dev/null 2>&1 || command -v uvx >/dev/null 2>&1 || command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1'; then
+    echo "unused uv or pip tooling is present in the runtime image" >&2
     exit 1
 fi
 
@@ -142,8 +142,6 @@ fi
     "${container_name}" certbot --version
 "${container_runtime}" exec --user "${expected_uid}:${expected_gid}" \
     "${container_name}" certbot plugins | grep -q dns-ionos
-"${container_runtime}" exec --user "${expected_uid}:${expected_gid}" \
-    "${container_name}" pip check
 "${container_runtime}" exec --user "${expected_uid}:${expected_gid}" \
     "${container_name}" supercronic -version
 

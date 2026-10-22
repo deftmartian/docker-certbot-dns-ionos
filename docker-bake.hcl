@@ -19,7 +19,7 @@ variable "CRYPTOGRAPHY_VERSION" {
 }
 
 variable "GOLANG_VERSION" {
-  default = "1.26.8-alpine"
+  default = "1.26.9-alpine"
 }
 
 variable "SUPERCRONIC_VERSION" {

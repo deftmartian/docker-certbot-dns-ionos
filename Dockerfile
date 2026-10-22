@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.26.9-alpine
+ARG GOLANG_VERSION=1.26.10-alpine
 ARG CERTBOT_VERSION=v5.8.0
 ARG CRYPTOGRAPHY_VERSION=50.0.0
 ARG SUPERCRONIC_VERSION=v0.2.47
@@ -91,17 +91,21 @@ RUN set -eux; \
     pip install --no-cache-dir --upgrade \
             "setuptools>=78.1.1" \
             "msgpack>=1.2.1" \
-            "urllib3>=2.8.0"; \
+            "urllib3>=2.8.0" \
+            "certifi>=2026.10.19"; \
     find /usr /opt -depth \( \
             -name 'setuptools-70.*' -o \
             -name 'msgpack-1.1.*' -o \
-            -name 'urllib3-2.7.*' \
+            -name 'urllib3-2.7.*' -o \
+            -name 'certifi-2026.7.*' \
         \) -exec rm -rf {} +; \
-    python -c "import setuptools, msgpack, urllib3; \
+    python -c "import certifi, setuptools, msgpack, urllib3; \
         assert setuptools.__version__.split('.') >= ['78','1','1'], setuptools.__version__; \
         urllib_version = tuple(int(part) for part in urllib3.__version__.split('.')[:3]); \
         assert urllib_version >= (2, 8, 0), urllib3.__version__; \
-        print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack), 'urllib3', urllib3.__version__);"; \
+        certifi_version = tuple(int(part) for part in certifi.__version__.split('.')[:3]); \
+        assert certifi_version >= (2026, 10, 19), certifi.__version__; \
+        print('setuptools', setuptools.__version__, 'msgpack', getattr(msgpack, 'version', msgpack), 'urllib3', urllib3.__version__, 'certifi', certifi.__version__);"; \
     apk del .cryptography-build-deps; \
     rm -rf "${HOME}/.cargo"; \
     pip check; \

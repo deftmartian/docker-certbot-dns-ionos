@@ -68,7 +68,7 @@ jobs:
             set -- $ids
             docker run --rm -i \
               -v /var/run/docker.sock:/var/run/docker.sock -v "$d:$d" -e TMPDIR="$d" \
-              -e EXPECTED_UID="$1" -e EXPECTED_GID="$2" \
+              -e EXPECTED_UID="$1" -e EXPECTED_GID="$2" -e SMOKE_ID="${GITHUB_RUN_ID:-$$}-$1" \
               git.deftmartian.dev/deftmartian/ci-docker:trixie sh -s -- "$IMAGE_LOCAL" < tests/smoke.sh
           done
           docker run --rm -v "/tmp:/host-tmp" alpine:3.22 rm -rf "/host-tmp/${d#/tmp/}"

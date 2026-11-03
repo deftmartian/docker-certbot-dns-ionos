@@ -98,22 +98,36 @@ jobs:
           docker buildx build --builder certbot-multi --platform linux/amd64,linux/arm64,linux/arm/v6 .
 
   publish:
-    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.actor == 'andrew' }}
     needs: check
     runs-on: trixie-docker
     timeout-minutes: 60
     env:
       BAO_ADDR: https://bao.bargen.ca
     steps:
+      # Forgejo skips a job-level `if` on a job with `needs` even when it is
+      # true (2026-11-03: a tag push by andrew still skipped publish), so the
+      # gate is this step; every later step requires RELEASE=1. OpenBao's
+      # publish-certbot role enforces the same rule independently.
+      - name: Only tag pushes by andrew publish
+        run: |
+          if [ "${{ github.event_name }}" = push ] && [ "${{ github.ref_type }}" = tag ] && [ "${{ github.actor }}" = andrew ]; then
+            echo "RELEASE=1" >> "$GITHUB_ENV"
+          else
+            echo "Not a release tag pushed by andrew: nothing to publish."
+          fi
+
       - uses: actions/checkout@v4
+        if: env.RELEASE == '1'
 
       - name: Release metadata matches the tag
+        if: env.RELEASE == '1'
         run: |
           set -euo pipefail
           test "${GITHUB_REF_NAME}" = "$(sed -n 's/^ARG IMAGE_VERSION=//p' Dockerfile)"
           grep -Fxq "## ${GITHUB_REF_NAME}" CHANGELOG
 
       - name: GHCR token from OpenBao (role publish-certbot)
+        if: env.RELEASE == '1'
         run: |
           set -euo pipefail
           jwt=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
@@ -129,12 +143,14 @@ jobs:
           echo "GHCR_TOKEN=${ghcr}" >> "$GITHUB_ENV"
 
       - name: Log in to both registries
+        if: env.RELEASE == '1'
         run: |
           set -euo pipefail
           echo "${{ secrets.REGISTRY_TOKEN }}" | docker login git.deftmartian.dev -u "${{ vars.REGISTRY_USER }}" --password-stdin
           echo "${GHCR_TOKEN}" | docker login ghcr.io -u deftmartian --password-stdin
 
       - name: Publish every supported platform to both registries
+        if: env.RELEASE == '1'
         run: |
           set -euo pipefail
           docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.2 --install arm64,arm >/dev/null
@@ -154,6 +170,7 @@ jobs:
           echo "### Published \`${GITHUB_REF_NAME}\` to Forgejo and GHCR" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create the GitHub release from the CHANGELOG (after the mirror has the tag)
+        if: env.RELEASE == '1'
         env:
           GH_TOKEN: ${{ env.GHCR_TOKEN }}
         run: |

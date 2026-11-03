@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2026.11.03
+
+- Build, test and publish on Forgejo (git.deftmartian.dev), the primary
+  repository; GitHub is a read-only mirror. Release images go to both
+  `git.deftmartian.dev/deftmartian/docker-certbot-dns-ionos` and
+  `ghcr.io/deftmartian/docker-certbot-dns-ionos` (amd64, arm64, arm/v6).
+- Rebuilt with current Alpine package updates.
+
 ## 2026.10.22
 
 - Build Supercronic with Go 1.26.10 and upgrade certifi to 2026.10.19.

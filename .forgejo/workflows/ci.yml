@@ -39,6 +39,9 @@ jobs:
     runs-on: trixie-docker   # the VM's Docker daemon builds and runs the test image
     timeout-minutes: 45
     steps:
+      - name: Trigger
+        run: echo "event=${{ github.event_name }} ref=${{ github.ref }} ref_type=${{ github.ref_type }} actor=${{ github.actor }}"
+
       - uses: actions/checkout@v4
 
       - name: Lint shell scripts and the Dockerfile
@@ -95,7 +98,7 @@ jobs:
           docker buildx build --builder certbot-multi --platform linux/amd64,linux/arm64,linux/arm/v6 .
 
   publish:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.actor == 'andrew'
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && github.actor == 'andrew' }}
     needs: check
     runs-on: trixie-docker
     timeout-minutes: 60
@@ -163,14 +166,19 @@ jobs:
             sleep 10
           done
           python3 - <<'PY'
-          import json, os, urllib.request
+          import json, os, urllib.error, urllib.request
           tag = os.environ["GITHUB_REF_NAME"]
           body = {"tag_name": tag, "name": tag, "body": open("release-notes.md").read()}
           req = urllib.request.Request("https://api.github.com/repos/deftmartian/docker-certbot-dns-ionos/releases",
                                        data=json.dumps(body).encode(), method="POST",
                                        headers={"Authorization": "Bearer " + os.environ["GH_TOKEN"],
                                                 "Accept": "application/vnd.github+json"})
-          print("GitHub release:", json.load(urllib.request.urlopen(req))["html_url"])
+          try:
+              print("GitHub release:", json.load(urllib.request.urlopen(req))["html_url"])
+          except urllib.error.HTTPError as error:
+              if error.code != 422:  # 422: a release for this tag already exists
+                  raise
+              print("GitHub release for", tag, "already exists; left as is")
           PY
 
       - name: Log out

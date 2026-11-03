@@ -84,7 +84,10 @@ jobs:
           trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
             --ignorefile .trivyignore --exit-code 1 "$IMAGE_LOCAL"
 
-      - name: Build every supported platform
+      - name: Build every supported platform (tags, weekly and manual runs only)
+        # QEMU builds of arm64 and arm/v6 are the heaviest step on the shared
+        # runner; PRs and branch pushes build and smoke-test amd64 only.
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           set -euo pipefail
           docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.2 --install arm64,arm >/dev/null

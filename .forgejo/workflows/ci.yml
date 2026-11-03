@@ -1,0 +1,175 @@
+name: CI
+
+# Forgejo is primary; GitHub is a push mirror with Actions off. Same gates as
+# the former GitHub workflow: lint, build, compose check, smoke test, Trivy
+# scan and a multi-platform build on every push and PR, weekly, and by hand.
+# A release tag (YYYY.MM.DD, matching IMAGE_VERSION and a CHANGELOG heading)
+# also publishes linux/amd64, arm64 and arm/v6 to both registries:
+#   git.deftmartian.dev/deftmartian/docker-certbot-dns-ionos  (homelab stacks pull this)
+#   ghcr.io/deftmartian/docker-certbot-dns-ionos              (public)
+# and creates the GitHub release from the CHANGELOG.
+#
+# Credentials: the Forgejo registry uses the org's deftmartian-ci package
+# token; GitHub uses secret/github/ghcr-push-token from OpenBao, which only
+# a tag push by andrew in this repository can read (role forgejo/publish-certbot).
+
+on:
+  push:
+    branches: [main]
+    tags: ["*.*.*"]
+  pull_request:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+enable-openid-connect: true
+
+env:
+  IMAGE_LOCAL: docker-certbot-dns-ionos:test
+  FORGEJO_IMAGE: git.deftmartian.dev/deftmartian/docker-certbot-dns-ionos
+  GHCR_IMAGE: ghcr.io/deftmartian/docker-certbot-dns-ionos
+  # renovate: datasource=github-releases depName=aquasecurity/trivy extractVersion=^v(?<version>.+)$
+  TRIVY_VERSION: "0.75.0"
+  TRIVY_SHA256: "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+  # renovate: datasource=docker depName=hadolint/hadolint
+  HADOLINT_IMAGE: "hadolint/hadolint:v2.12.0"
+
+jobs:
+  check:
+    runs-on: trixie-docker   # the VM's Docker daemon builds and runs the test image
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint shell scripts and the Dockerfile
+        run: |
+          set -euo pipefail
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends shellcheck >/dev/null
+          git ls-files -z '*.sh' scripts tests | xargs -0 -r shellcheck
+          docker run --rm -i "$HADOLINT_IMAGE" < Dockerfile
+
+      - name: Build the test image
+        run: docker build --pull -t "$IMAGE_LOCAL" .
+
+      - name: Validate the Compose example
+        env:
+          IONOS_DOMAINS: smoke-test.example
+          IONOS_EMAIL: smoke-test@example.com
+        run: docker compose config --quiet
+
+      - name: Smoke test (inside a helper container on the VM's daemon)
+        # The job's own temp directories aren't visible to the VM's daemon, so
+        # tests/smoke.sh runs in a helper container whose TMPDIR is a VM path,
+        # which makes its bind mounts resolve. smoke.sh is unchanged.
+        run: |
+          set -euo pipefail
+          d="/tmp/certbot-smoke-${GITHUB_RUN_ID:-$$}"
+          for ids in "1000 1000" "1883 1883"; do
+            set -- $ids
+            docker run --rm -i \
+              -v /var/run/docker.sock:/var/run/docker.sock -v "$d:$d" -e TMPDIR="$d" \
+              -e EXPECTED_UID="$1" -e EXPECTED_GID="$2" \
+              git.deftmartian.dev/deftmartian/ci-docker:trixie sh -s -- "$IMAGE_LOCAL" < tests/smoke.sh
+          done
+          docker run --rm -v "/tmp:/host-tmp" alpine:3.22 rm -rf "/host-tmp/${d#/tmp/}"
+
+      - name: Scan the image (Trivy, HIGH and CRITICAL, fixed only)
+        run: |
+          set -euo pipefail
+          cd "$(mktemp -d)"
+          curl -fsSLo trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
+          tar -xzf trivy.tar.gz trivy && install -m 0755 trivy /usr/local/bin/trivy
+          cd "$GITHUB_WORKSPACE"
+          trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+            --ignorefile .trivyignore --exit-code 1 "$IMAGE_LOCAL"
+
+      - name: Build every supported platform
+        run: |
+          set -euo pipefail
+          docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.2 --install arm64,arm >/dev/null
+          docker buildx inspect certbot-multi >/dev/null 2>&1 || docker buildx create --name certbot-multi --driver docker-container >/dev/null
+          docker buildx build --builder certbot-multi --platform linux/amd64,linux/arm64,linux/arm/v6 .
+
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && github.actor == 'andrew'
+    needs: check
+    runs-on: trixie-docker
+    timeout-minutes: 60
+    env:
+      BAO_ADDR: https://bao.bargen.ca
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Release metadata matches the tag
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "$(sed -n 's/^ARG IMAGE_VERSION=//p' Dockerfile)"
+          grep -Fxq "## ${GITHUB_REF_NAME}" CHANGELOG
+
+      - name: GHCR token from OpenBao (role publish-certbot)
+        run: |
+          set -euo pipefail
+          jwt=$(curl -fsS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+                "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://bao.bargen.ca" \
+                | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          token=$(python3 -c 'import json,sys; print(json.dumps({"role": "publish-certbot", "jwt": sys.argv[1]}))' "$jwt" \
+                  | curl -sS -X POST --data @- "${BAO_ADDR}/v1/auth/forgejo/login" \
+                  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["auth"]["client_token"]) if d.get("auth") else sys.exit("OpenBao refused the login: " + "; ".join(d.get("errors", [])))')
+          echo "::add-mask::${token}"
+          ghcr=$(curl -fsS -H "X-Vault-Token: ${token}" "${BAO_ADDR}/v1/secret/data/github/ghcr-push-token" \
+                 | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["token"])')
+          echo "::add-mask::${ghcr}"
+          echo "GHCR_TOKEN=${ghcr}" >> "$GITHUB_ENV"
+
+      - name: Log in to both registries
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.REGISTRY_TOKEN }}" | docker login git.deftmartian.dev -u "${{ vars.REGISTRY_USER }}" --password-stdin
+          echo "${GHCR_TOKEN}" | docker login ghcr.io -u deftmartian --password-stdin
+
+      - name: Publish every supported platform to both registries
+        run: |
+          set -euo pipefail
+          docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.2 --install arm64,arm >/dev/null
+          docker buildx inspect certbot-multi >/dev/null 2>&1 || docker buildx create --name certbot-multi --driver docker-container >/dev/null
+          tags=""
+          for image in "$FORGEJO_IMAGE" "$GHCR_IMAGE"; do
+            tags="$tags -t $image:latest -t $image:${GITHUB_REF_NAME} -t $image:sha-${GITHUB_SHA}"
+          done
+          # shellcheck disable=SC2086
+          docker buildx build --builder certbot-multi --push \
+            --platform linux/amd64,linux/arm64,linux/arm/v6 \
+            --build-arg IMAGE_VERSION="${GITHUB_REF_NAME}" \
+            --label org.opencontainers.image.source=https://github.com/deftmartian/docker-certbot-dns-ionos \
+            --label org.opencontainers.image.revision="${GITHUB_SHA}" \
+            --label org.opencontainers.image.version="${GITHUB_REF_NAME}" \
+            $tags .
+          echo "### Published \`${GITHUB_REF_NAME}\` to Forgejo and GHCR" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create the GitHub release from the CHANGELOG (after the mirror has the tag)
+        env:
+          GH_TOKEN: ${{ env.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          awk -v v="${GITHUB_REF_NAME}" '$0 == "## " v {f=1; next} f && /^## / {exit} f {print}' CHANGELOG > release-notes.md
+          test -s release-notes.md
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/deftmartian/docker-certbot-dns-ionos/git/ref/tags/${GITHUB_REF_NAME}" && break
+            sleep 10
+          done
+          python3 - <<'PY'
+          import json, os, urllib.request
+          tag = os.environ["GITHUB_REF_NAME"]
+          body = {"tag_name": tag, "name": tag, "body": open("release-notes.md").read()}
+          req = urllib.request.Request("https://api.github.com/repos/deftmartian/docker-certbot-dns-ionos/releases",
+                                       data=json.dumps(body).encode(), method="POST",
+                                       headers={"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                                                "Accept": "application/vnd.github+json"})
+          print("GitHub release:", json.load(urllib.request.urlopen(req))["html_url"])
+          PY
+
+      - name: Log out
+        if: always()
+        run: docker logout git.deftmartian.dev || true; docker logout ghcr.io || true

@@ -42,7 +42,7 @@ jobs:
       - name: Trigger
         run: echo "event=${{ github.event_name }} ref=${{ github.ref }} ref_type=${{ github.ref_type }} actor=${{ github.actor }}"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Lint shell scripts and the Dockerfile
         run: |
@@ -116,7 +116,7 @@ jobs:
             echo "Not a release tag pushed by andrew: nothing to publish."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.RELEASE == '1'
 
       - name: Release metadata matches the tag

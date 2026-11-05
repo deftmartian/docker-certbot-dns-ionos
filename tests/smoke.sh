@@ -62,10 +62,17 @@ if [ "$("${container_runtime}" inspect --format '{{.State.Running}}' "${containe
     exit 1
 fi
 
-# The awk expression runs inside the container; its $2 is not a shell variable.
-# shellcheck disable=SC2016
-actual_uid=$("${container_runtime}" exec "${container_name}" \
-    awk '/^Uid:/{print $2}' /proc/1/status)
+# The entrypoint prepares the mounted directories as root and then execs the scheduler as USER_UID,
+# which can take more than the fixed sleep on a busy runner. Poll PID 1 for up to 30 seconds.
+actual_uid=""
+for _ in $(seq 1 30); do
+    # The awk expression runs inside the container; its $2 is not a shell variable.
+    # shellcheck disable=SC2016
+    actual_uid=$("${container_runtime}" exec "${container_name}" \
+        awk '/^Uid:/{print $2}' /proc/1/status)
+    [ "${actual_uid}" = "${expected_uid}" ] && break
+    sleep 1
+done
 if [ "${actual_uid}" != "${expected_uid}" ]; then
     echo "scheduler runs as UID ${actual_uid}; expected ${expected_uid}" >&2
     exit 1

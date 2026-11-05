@@ -1,4 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>deftmartian/renovate"]
+  "extends": ["local>deftmartian/renovate"],
+  "packageRules": [
+    {
+      "description": "Trivy is pinned by version and SHA-256 in ci.yml: recompute and verify the checksum in the same PR",
+      "matchDepNames": ["aquasecurity/trivy"],
+      "postUpgradeTasks": {
+        "commands": ["scripts/renovate-checksums"],
+        "fileFilters": [".forgejo/workflows/ci.yml"],
+        "executionMode": "branch"
+      }
+    }
+  ]
 }

@@ -29,7 +29,7 @@ env:
   FORGEJO_IMAGE: git.deftmartian.dev/deftmartian/docker-certbot-dns-ionos
   GHCR_IMAGE: ghcr.io/deftmartian/docker-certbot-dns-ionos
   # renovate: datasource=github-releases depName=aquasecurity/trivy extractVersion=^v(?<version>.+)$
-  TRIVY_VERSION: "0.76.0"
+  TRIVY_VERSION: "0.76.1"
   TRIVY_SHA256: "e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7"
   # renovate: datasource=docker depName=hadolint/hadolint
   HADOLINT_IMAGE: "hadolint/hadolint:v2.12.0"

@@ -59,8 +59,10 @@ RUN set -eux; \
     apk add --no-cache --upgrade \
         su-exec \
         util-linux \
-        libuuid; \
-    apk info -v util-linux libuuid; \
+        libuuid \
+        musl \
+        musl-utils; \
+    apk info -v util-linux libuuid musl musl-utils; \
     mkdir -p "${CERTBOT_BASE_DIR}"; \
     addgroup -g "${USER_GID}" -S "${USERNAME}"; \
     adduser -u "${USER_UID}" -S "${USERNAME}" -G "${USERNAME}" -h "${CERTBOT_BASE_DIR}"; \

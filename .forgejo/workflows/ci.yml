@@ -110,9 +110,10 @@ jobs:
     env:
       BAO_ADDR: https://bao.bargen.ca
     steps:
-      # Forgejo skips a job-level `if` on a job with `needs` even when it is
-      # true (2026-11-03: a tag push by andrew still skipped publish), so the
-      # gate is this step; every later step requires RELEASE=1. OpenBao's
+      # In a job-level `if` on a job with `needs`, Forgejo's github.actor doesn't
+      # hold the real user, so `github.actor == 'andrew'` there skipped publish
+      # even for andrew's tag push (2026-11-03). Steps see the right actor, so
+      # the gate is this step; every later step requires RELEASE=1. OpenBao's
       # publish-certbot role enforces the same rule independently.
       - name: Only tag pushes by andrew publish
         run: |
